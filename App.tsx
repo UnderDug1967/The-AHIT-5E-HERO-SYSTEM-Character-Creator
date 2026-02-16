@@ -29,12 +29,15 @@ import { calculateFigured, getRoll, heroRound } from './utils';
 
 type AppTab = 'Concept' | 'Characteristics' | 'Skills' | 'Perks' | 'Talents' | 'Powers' | 'Disadvantages' | 'Final';
 
+const STORAGE_KEY = 'hero_creator_current_char';
+
 const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState<AppTab>('Concept');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [character, setCharacter] = useState<Character>(() => {
+  // Initial State Logic
+  const createNewCharacter = (): Character => {
     const initialSkills: Skill[] = EVERYMAN_SKILLS_LIST.map(s => ({
       id: Math.random().toString(36).substr(2, 9),
       name: s.name,
@@ -63,7 +66,24 @@ const App: React.FC = () => {
       powers: [],
       disadvantages: []
     };
+  };
+
+  const [character, setCharacter] = useState<Character>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return createNewCharacter();
+      }
+    }
+    return createNewCharacter();
   });
+
+  // Persist to Local Storage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(character));
+  }, [character]);
 
   // Handle Splash Screen Timer
   useEffect(() => {
@@ -72,6 +92,14 @@ const App: React.FC = () => {
     }, 5000);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleReset = () => {
+    if (window.confirm("Start a new character? This will clear all current unsaved data.")) {
+      const newChar = createNewCharacter();
+      setCharacter(newChar);
+      setActiveTab('Concept');
+    }
+  };
 
   const tier = useMemo(() => CAMPAIGN_TIERS.find(t => t.name === character.tier) || CAMPAIGN_TIERS[3], [character.tier]);
 
@@ -321,24 +349,20 @@ const App: React.FC = () => {
   if (showSplash) {
     return (
       <div className="fixed inset-0 z-[100] bg-[#0d0d0d] flex flex-col items-center justify-center overflow-hidden">
-        {/* Cinematic Background Image Overlayed with Glow */}
         <div className="absolute inset-0 z-0">
           <img 
             src="splash.png" 
             alt="Hero System" 
             className="w-full h-full object-cover object-center animate-in fade-in duration-1000 scale-[1.02]"
             onError={(e) => {
-              // High contrast fallback if image is missing
               e.currentTarget.style.display = 'none';
               e.currentTarget.parentElement!.style.background = 'radial-gradient(circle, #2a1000 0%, #000 100%)';
             }}
           />
-          {/* Subtle vignette and glow to match the image chest symbol */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-60" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,_rgba(255,100,0,0.1)_0%,_transparent_50%)]" />
         </div>
 
-        {/* Dynamic Ember/Spark Particles System */}
         <div className="absolute inset-0 z-10 pointer-events-none">
           {[...Array(12)].map((_, i) => (
             <div 
@@ -353,7 +377,6 @@ const App: React.FC = () => {
           ))}
         </div>
 
-        {/* Cinematic Loading Interface */}
         <div className="absolute bottom-16 w-full max-w-sm px-8 z-20 flex flex-col items-center">
           <div className="w-full bg-black/60 backdrop-blur-md h-1.5 rounded-full overflow-hidden border border-orange-500/20 shadow-[0_0_15px_rgba(255,100,0,0.1)]">
             <div 
@@ -400,7 +423,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden bg-zinc-950 transition-opacity duration-1000 animate-in fade-in">
-      {/* Sidebar - Desktop */}
       <nav className="hidden lg:flex w-72 bg-zinc-900 flex-col border-r border-zinc-800 flex-shrink-0 z-20 no-print h-full shadow-2xl">
         <div className="p-6">
           <div className="mb-8 group">
@@ -418,17 +440,22 @@ const App: React.FC = () => {
               </button>
             ))}
           </div>
+          <div className="mt-8 border-t border-zinc-800 pt-6">
+             <button onClick={handleReset} className="w-full text-zinc-600 hover:text-red-500 text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                New Character
+             </button>
+          </div>
         </div>
         <div className="mt-auto p-6 bg-zinc-950/50 border-t border-zinc-800">
           <PointGauge />
         </div>
       </nav>
 
-      {/* Navigation - Mobile */}
       <header className="lg:hidden flex flex-col bg-zinc-900 border-b border-zinc-800 no-print flex-shrink-0 sticky top-0 z-30 shadow-xl">
         <div className="flex items-center justify-between p-4 pb-2">
           <h1 className="text-xl font-bold text-red-600 italic tracking-tighter oswald uppercase">HERO 5e</h1>
-          <div className="text-[10px] font-bold text-zinc-500 uppercase">Points: <span className={costs.totalSpent > costs.totalBudget ? 'text-red-500' : 'text-green-500'}>{costs.totalSpent}</span> / {costs.totalBudget}</div>
+          <button onClick={handleReset} className="text-zinc-500"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
         </div>
         <div className="overflow-x-auto scrollbar-hide flex gap-2 px-4 pb-4">
           {tabs.map(tab => (
@@ -442,7 +469,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto bg-zinc-950 p-4 lg:p-10 relative scroll-smooth transition-all duration-500">
         {activeTab === 'Concept' && (
           <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -588,7 +614,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Perks/Talents/Powers/Disadvantages Sections - Refined to match standard tabs */}
         {activeTab === 'Perks' && (
           <div className="max-w-6xl space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
             <header><h2 className="text-3xl lg:text-4xl font-bold mb-2 h2 uppercase">Perks</h2><p className="text-zinc-400">Social advantages, connections, and specialized status.</p></header>
@@ -700,10 +725,7 @@ const App: React.FC = () => {
                        <button onClick={() => setPowerForm({...powerForm, level: powerForm.level + 1})} className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-red-600 transition-all font-bold text-xl">+</button>
                     </div>
                   )}
-                  <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 text-center shadow-inner group">
-                    <p className="text-[9px] font-black uppercase text-zinc-600 mb-1 group-hover:text-red-500 transition-colors">Base Points</p>
-                    <div className="text-5xl font-black text-red-500 oswald tracking-tighter">{currentPowerBaseCost}</div>
-                  </div>
+                  <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 text-center shadow-inner group"><div className="text-5xl font-black text-red-500 oswald tracking-tighter">{currentPowerBaseCost}</div></div>
                   <button onClick={addPower} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl transition-all shadow-2xl uppercase text-[10px] tracking-[0.2em] active:scale-[0.98]">Construct Power Card</button>
                 </div>
               </div>
@@ -795,10 +817,7 @@ const App: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 text-center shadow-inner group">
-                    <p className="text-[9px] font-black uppercase text-zinc-600 mb-1">Point Value</p>
-                    <div className="text-4xl font-black text-red-500 oswald tracking-tighter">{currentDisadValue}</div>
-                  </div>
+                  <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 text-center shadow-inner group"><div className="text-4xl font-black text-red-500 oswald tracking-tighter">{currentDisadValue}</div></div>
                   <button onClick={addDisadvantage} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl transition-all shadow-2xl uppercase text-[10px] tracking-[0.2em] active:scale-[0.98]">Add Complication</button>
                 </div>
               </div>

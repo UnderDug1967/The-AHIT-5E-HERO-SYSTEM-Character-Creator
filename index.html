@@ -1,9 +1,18 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HERO System 5e Character Creator</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ef4444">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="splash.png">
+    <link rel="manifest" href="/manifest.json">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');
@@ -11,11 +20,13 @@
         * {
             font-family: 'Oswald', sans-serif;
             font-optical-sizing: auto;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body { 
             background-color: #09090b; /* zinc-950 */
             color: #f4f4f5; /* zinc-100 */
+            overscroll-behavior-y: contain; /* Prevents "pull to refresh" on mobile */
         }
 
         ::-webkit-scrollbar { width: 8px; }
@@ -23,7 +34,6 @@
         ::-webkit-scrollbar-thumb { background: #ef4444; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #dc2626; }
 
-        /* Ensure input and select elements inherit the font */
         input, select, textarea, button {
             font-family: 'Oswald', sans-serif !important;
         }
@@ -54,7 +64,6 @@
             .oswald-print {
                 color: black !important;
             }
-            /* Force white background for the printed sheet */
             .bg-white {
                 background-color: white !important;
             }
@@ -73,5 +82,16 @@
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered'))
+            .catch(err => console.log('Service Worker registration failed', err));
+        });
+      }
+    </script>
 </body>
 </html>

@@ -1,0 +1,17 @@
+
+{
+  "short_name": "Hero5e",
+  "name": "AHIT Hero System Character Creator",
+  "icons": [
+    {
+      "src": "splash.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#ef4444",
+  "background_color": "#09090b"
+}
